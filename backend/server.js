@@ -9,7 +9,7 @@ connectDB();
 const app = express();
 
 // Middleware
-app.use(cors());
+app.use(cors()); 
 app.use(express.json());
 
 // Routes
@@ -19,6 +19,7 @@ app.use('/api/employees', require('./routes/employees'));
 app.use('/api/assignments', require('./routes/assignments'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/auditlogs', require('./routes/auditLogs'));
+app.use('/api/analytics', require('./routes/analytics'));
 
 app.get('/', (req, res) => {
     res.send('Online Asset Tracking API is running...');

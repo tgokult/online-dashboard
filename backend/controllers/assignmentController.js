@@ -11,7 +11,7 @@ const getAssignments = async (req, res) => {
         res.json(assignments);
     } catch (error) {
         res.status(500).json({ message: error.message });
-    }
+    } 
 };
 
 const assignAsset = async (req, res) => {
