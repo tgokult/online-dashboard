@@ -1,14 +1,15 @@
 const express = require('express');
 const router = express.Router();
 const auditLogController = require('../controllers/auditLogController');
+const { protect } = require('../middleware/authMiddleware');
 
 // Get all audit logs
-router.get('/', auditLogController.getLogs);
+router.get('/', protect, auditLogController.getLogs);
 
 // Create an audit log entry
-router.post('/', auditLogController.createLog);
+router.post('/', protect, auditLogController.createLog);
 
 // Clear all audit logs
-router.delete('/clear', auditLogController.clearLogs);
+router.delete('/clear', protect, auditLogController.clearLogs);
 
 module.exports = router;

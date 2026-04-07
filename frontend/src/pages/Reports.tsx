@@ -1,16 +1,27 @@
 import { useEffect, useState } from 'react';
-import { Download, FileText, BarChart3 } from 'lucide-react';
+import { Download, FileText, BarChart3, ShieldAlert, Wrench } from 'lucide-react';
 import api from '../services/api';
 
 const Reports = () => {
     const [assignments, setAssignments] = useState<any[]>([]);
+    const [stats, setStats] = useState<any>(null);
+    const [warrantyAlerts, setWarrantyAlerts] = useState<any[]>([]);
+    const [maintenanceSchedule, setMaintenanceSchedule] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await api.get('/assignments');
-                setAssignments(res.data);
+                const [assignmentRes, statsRes, warrantyRes, maintenanceRes] = await Promise.all([
+                    api.get('/assignments'),
+                    api.get('/assets/stats'),
+                    api.get('/assets/warranty-alerts'),
+                    api.get('/assets/maintenance-schedule'),
+                ]);
+                setAssignments(assignmentRes.data);
+                setStats(statsRes.data);
+                setWarrantyAlerts(warrantyRes.data);
+                setMaintenanceSchedule(maintenanceRes.data);
             } catch (error) {
                 console.error(error);
             } finally {
@@ -49,7 +60,7 @@ const Reports = () => {
     };
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 max-w-5xl mx-auto">
+        <div className="space-y-6 animate-in fade-in duration-500 max-w-6xl mx-auto">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-800/40 p-6 rounded-3xl shadow-xl border border-slate-700/50 backdrop-blur-xl relative overflow-hidden">
                 <div className="absolute top-[-50%] left-[-10%] w-64 h-64 bg-cyan-500/10 rounded-full blur-[80px] pointer-events-none -z-10"></div>
                 <div className="absolute bottom-[-50%] right-[-10%] w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] pointer-events-none -z-10"></div>
@@ -71,6 +82,67 @@ const Reports = () => {
                     <Download size={18} className="text-cyan-400 group-hover:-translate-y-0.5 transition-transform" />
                     <span>Download CSV Log</span>
                 </button>
+            </div>
+
+            {stats && (
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-4">
+                    <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
+                        <p className="text-sm text-slate-400">Inventory</p>
+                        <p className="mt-2 text-3xl font-bold text-white">{stats.total}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
+                        <p className="text-sm text-slate-400">Assigned</p>
+                        <p className="mt-2 text-3xl font-bold text-white">{stats.assigned}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
+                        <p className="text-sm text-slate-400">Warranty Risk</p>
+                        <p className="mt-2 text-3xl font-bold text-white">{stats.warrantyExpiringSoon}</p>
+                    </div>
+                    <div className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5">
+                        <p className="text-sm text-slate-400">Maintenance Due</p>
+                        <p className="mt-2 text-3xl font-bold text-white">{stats.maintenanceDueSoon}</p>
+                    </div>
+                </div>
+            )}
+
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div className="rounded-3xl border border-amber-500/20 bg-slate-800/40 p-6 shadow-xl">
+                    <div className="mb-4 flex items-center gap-3 text-white">
+                        <ShieldAlert className="text-amber-400" size={20} />
+                        <h3 className="text-lg font-semibold">Warranty Expiry Watchlist</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {warrantyAlerts.length === 0 ? (
+                            <p className="text-sm text-slate-400">No assets are approaching warranty expiry.</p>
+                        ) : (
+                            warrantyAlerts.slice(0, 5).map((asset) => (
+                                <div key={asset._id} className="rounded-2xl border border-slate-700/50 bg-slate-900/40 px-4 py-3">
+                                    <p className="font-medium text-white">{asset.assetName}</p>
+                                    <p className="mt-1 text-sm text-slate-400">{asset.assetId} • expires {new Date(asset.warrantyExpiry).toLocaleDateString()}</p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                <div className="rounded-3xl border border-cyan-500/20 bg-slate-800/40 p-6 shadow-xl">
+                    <div className="mb-4 flex items-center gap-3 text-white">
+                        <Wrench className="text-cyan-400" size={20} />
+                        <h3 className="text-lg font-semibold">Maintenance Schedule</h3>
+                    </div>
+                    <div className="space-y-3">
+                        {maintenanceSchedule.length === 0 ? (
+                            <p className="text-sm text-slate-400">No maintenance items are scheduled.</p>
+                        ) : (
+                            maintenanceSchedule.slice(0, 5).map((asset) => (
+                                <div key={asset._id} className="rounded-2xl border border-slate-700/50 bg-slate-900/40 px-4 py-3">
+                                    <p className="font-medium text-white">{asset.assetName}</p>
+                                    <p className="mt-1 text-sm text-slate-400">{asset.assetId} • due {asset.maintenanceDue ? new Date(asset.maintenanceDue).toLocaleDateString() : 'in maintenance'}</p>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
             </div>
 
             <div className="bg-slate-800/40 rounded-3xl shadow-xl border border-slate-700/50 p-8 md:p-12 flex flex-col items-center justify-center min-h-[400px] backdrop-blur-xl relative overflow-hidden text-center">

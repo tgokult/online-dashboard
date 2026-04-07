@@ -42,25 +42,21 @@ const AuditLogs = () => {
     };
 
     const getActionIcon = (action: string) => {
-        switch (action) {
-            case 'CREATE': return <Cpu size={16} className="text-emerald-400" />;
-            case 'UPDATE': return <RefreshCw size={16} className="text-amber-400" />;
-            case 'ASSIGN': return <UserCheck size={16} className="text-indigo-400" />;
-            case 'RETURN': return <History size={16} className="text-cyan-400" />;
-            case 'DELETE': return <ShieldAlert size={16} className="text-rose-400" />;
-            default: return <History size={16} className="text-slate-400" />;
-        }
+        if (action.includes('CREATED')) return <Cpu size={16} className="text-emerald-400" />;
+        if (action.includes('UPDATED')) return <RefreshCw size={16} className="text-amber-400" />;
+        if (action.includes('ASSIGNED')) return <UserCheck size={16} className="text-indigo-400" />;
+        if (action.includes('RETURNED')) return <History size={16} className="text-cyan-400" />;
+        if (action.includes('DELETED') || action.includes('CLEAR')) return <ShieldAlert size={16} className="text-rose-400" />;
+        return <History size={16} className="text-slate-400" />;
     };
 
     const getActionBadge = (action: string) => {
-        switch (action) {
-            case 'CREATE': return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
-            case 'UPDATE': return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
-            case 'ASSIGN': return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
-            case 'RETURN': return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
-            case 'DELETE': return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
-            default: return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
-        }
+        if (action.includes('CREATED')) return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+        if (action.includes('UPDATED')) return 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+        if (action.includes('ASSIGNED')) return 'bg-indigo-500/10 text-indigo-400 border-indigo-500/20';
+        if (action.includes('RETURNED')) return 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20';
+        if (action.includes('DELETED') || action.includes('CLEAR')) return 'bg-rose-500/10 text-rose-400 border-rose-500/20';
+        return 'bg-slate-500/10 text-slate-400 border-slate-500/20';
     };
 
     const filteredLogs = logs.filter(log =>

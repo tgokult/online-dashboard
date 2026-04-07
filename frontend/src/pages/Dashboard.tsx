@@ -1,18 +1,32 @@
 import { useEffect, useState } from 'react';
-import { Package, Clock, AlertTriangle, Users, Activity } from 'lucide-react';
+import { Package, Clock, AlertTriangle, Users, Activity, ShieldAlert, Wrench, ArrowRight } from 'lucide-react';
 import api from '../services/api';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Link } from 'react-router-dom';
 
+interface DashboardAnalytics {
+    summary: { totalAssets: number; totalEmployees: number; activeAssignments: number; totalAssignments: number; };
+    categories: { name: string; value: number }[];
+    statusData: { name: string; value: number }[];
+    alerts: { warrantyExpiringSoon: number; maintenanceDueSoon: number };
+    recentAssignments: {
+        _id: string;
+        assetName: string;
+        assetTag: string;
+        employeeName: string;
+        department: string;
+        assignDate: string;
+        returnDate: string | null;
+    }[];
+}
+
 const Dashboard = () => {
-    const [analytics, setAnalytics] = useState<{
-        summary: { totalAssets: number; totalEmployees: number; activeAssignments: number; };
-        categories: { name: string; value: number }[];
-        statusData: { name: string; value: number }[];
-    }>({
-        summary: { totalAssets: 0, totalEmployees: 0, activeAssignments: 0 },
+    const [analytics, setAnalytics] = useState<DashboardAnalytics>({
+        summary: { totalAssets: 0, totalEmployees: 0, activeAssignments: 0, totalAssignments: 0 },
         categories: [],
-        statusData: []
+        statusData: [],
+        alerts: { warrantyExpiringSoon: 0, maintenanceDueSoon: 0 },
+        recentAssignments: [],
     });
     const [loading, setLoading] = useState(true);
 
@@ -69,10 +83,10 @@ const Dashboard = () => {
                     <h3 className="text-xl font-medium text-white tracking-tight">System Metrics</h3>
                     <p className="text-slate-400 text-sm mt-1">Real-time overview of your asset allocation.</p>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-xl text-sm font-medium text-white transition-all backdrop-blur-sm group">
+                <Link to="/reports" className="flex items-center gap-2 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700 rounded-xl text-sm font-medium text-white transition-all backdrop-blur-sm group">
                     <Activity size={16} className="text-cyan-400" />
                     <span>Generate Report</span>
-                </button>
+                </Link>
             </div>
 
             {/* Stat Cards */}
@@ -93,6 +107,34 @@ const Dashboard = () => {
                         </div>
                     </div>
                 ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="rounded-3xl border border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-orange-500/5 p-6 shadow-xl">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <p className="text-sm uppercase tracking-[0.2em] text-amber-300/80">Warranty Alerts</p>
+                            <h3 className="mt-3 text-4xl font-bold text-white">{analytics.alerts.warrantyExpiringSoon}</h3>
+                            <p className="mt-2 text-sm text-slate-300">Assets with warranty expiring in the next 30 days.</p>
+                        </div>
+                        <div className="rounded-2xl bg-amber-400/15 p-3 text-amber-300">
+                            <ShieldAlert size={24} />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="rounded-3xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/10 to-sky-500/5 p-6 shadow-xl">
+                    <div className="flex items-start justify-between gap-4">
+                        <div>
+                            <p className="text-sm uppercase tracking-[0.2em] text-cyan-300/80">Maintenance Due</p>
+                            <h3 className="mt-3 text-4xl font-bold text-white">{analytics.alerts.maintenanceDueSoon}</h3>
+                            <p className="mt-2 text-sm text-slate-300">Assets due for maintenance in the next 14 days.</p>
+                        </div>
+                        <div className="rounded-2xl bg-cyan-400/15 p-3 text-cyan-300">
+                            <Wrench size={24} />
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -156,16 +198,50 @@ const Dashboard = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-8">
-                {/* Quick Actions Panel */}
-                <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl shadow-xl backdrop-blur-xl lg:col-span-3 flex flex-row items-center justify-between relative overflow-hidden group">
+                <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl shadow-xl backdrop-blur-xl lg:col-span-2">
+                    <div className="mb-6 flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-semibold text-white tracking-tight">Recent Assignment Activity</h3>
+                            <p className="mt-1 text-sm text-slate-400">Latest lifecycle actions across the organization.</p>
+                        </div>
+                        <div className="rounded-full border border-slate-700/50 bg-slate-900/50 px-3 py-1 text-xs text-slate-300">
+                            {analytics.summary.totalAssignments} total events
+                        </div>
+                    </div>
+
+                    <div className="space-y-4">
+                        {analytics.recentAssignments.length === 0 ? (
+                            <div className="rounded-2xl border border-dashed border-slate-700/60 p-8 text-center text-sm text-slate-400">
+                                No assignment activity yet.
+                            </div>
+                        ) : (
+                            analytics.recentAssignments.map((item) => (
+                                <div key={item._id} className="flex items-center justify-between gap-4 rounded-2xl border border-slate-700/40 bg-slate-900/30 px-4 py-4">
+                                    <div>
+                                        <p className="font-medium text-white">{item.assetName}</p>
+                                        <p className="mt-1 text-sm text-slate-400">{item.assetTag} assigned to {item.employeeName} • {item.department}</p>
+                                    </div>
+                                    <div className="text-right text-sm">
+                                        <p className="text-slate-200">{new Date(item.assignDate).toLocaleDateString()}</p>
+                                        <p className={`mt-1 ${item.returnDate ? 'text-emerald-400' : 'text-cyan-400'}`}>
+                                            {item.returnDate ? 'Returned' : 'Active'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                <div className="bg-slate-800/40 border border-slate-700/50 p-6 rounded-3xl shadow-xl backdrop-blur-xl flex flex-col justify-between relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-[80px] -mr-32 -mt-32 pointer-events-none transition-all group-hover:bg-indigo-500/20"></div>
 
                     <div>
                         <h3 className="text-lg font-semibold text-white tracking-tight">Quick Operations</h3>
-                        <p className="text-sm text-slate-400 mt-1">Easily register or assign assets to employees.</p>
+                        <p className="text-sm text-slate-400 mt-1">Jump into the workflows your admin team uses most.</p>
                     </div>
 
-                    <div className="flex space-x-4">
+                    <div className="mt-6 space-y-3">
                         <Link to="/assets/new" className="flex items-center space-x-3 px-5 py-3 bg-gradient-to-br from-cyan-600 to-blue-700 hover:from-cyan-500 hover:to-blue-600 rounded-xl text-white font-medium shadow-lg shadow-cyan-500/25 transition-all">
                             <Package size={18} />
                             <span>Register Asset</span>
@@ -173,6 +249,10 @@ const Dashboard = () => {
                         <Link to="/assignments" className="flex items-center space-x-3 px-5 py-3 bg-gradient-to-br from-purple-600 to-fuchsia-700 hover:from-purple-500 hover:to-fuchsia-600 rounded-xl text-white font-medium shadow-lg shadow-purple-500/25 transition-all">
                             <Users size={18} />
                             <span>Assign Asset</span>
+                        </Link>
+                        <Link to="/reports" className="flex items-center justify-between rounded-xl border border-slate-700/60 bg-slate-900/40 px-5 py-3 text-slate-200 transition-all hover:border-cyan-500/40 hover:text-white">
+                            <span>Open executive reports</span>
+                            <ArrowRight size={16} />
                         </Link>
                     </div>
                 </div>

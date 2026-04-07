@@ -1,11 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Package, Users, ClipboardList, FileText, LogOut, Bell, Search, History } from 'lucide-react';
+import { LayoutDashboard, Package, Users, ClipboardList, FileText, LogOut, Bell, History, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
+
+interface NotificationItem {
+    _id: string;
+    message: string;
+    isRead: boolean;
+    createdAt: string;
+}
+
+interface StoredUser {
+    name?: string;
+    role?: string;
+    email?: string;
+}
 
 const AdminLayout = () => {
     const navigate = useNavigate();
     const location = useLocation();
+    const storedUser = JSON.parse(localStorage.getItem('user') || '{}') as StoredUser;
 
     const handleLogout = () => {
         localStorage.removeItem('token');
@@ -22,10 +36,20 @@ const AdminLayout = () => {
         { name: 'Audit Logs', path: '/audit-logs', icon: <History size={20} /> },
     ];
 
-    const [notifications, setNotifications] = useState<any[]>([]);
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [showNotifications, setShowNotifications] = useState(false);
     const notificationRef = useRef<HTMLDivElement>(null);
+    const pageTitleMap: Record<string, string> = {
+        '/': 'Dashboard Overview',
+        '/assets': 'Asset Operations',
+        '/employees': 'Employee Directory',
+        '/assignments': 'Assignment Center',
+        '/reports': 'Reports & Insights',
+        '/audit-logs': 'Audit Trail',
+    };
+    const pageTitle = pageTitleMap[location.pathname] || 'Operations';
+    const userInitial = storedUser.name?.charAt(0).toUpperCase() || 'A';
 
     useEffect(() => {
         const fetchNotifications = async () => {
@@ -117,11 +141,11 @@ const AdminLayout = () => {
                     <div className="bg-slate-800/50 rounded-2xl p-4 border border-slate-700/50 mb-4">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 text-white flex items-center justify-center font-bold shadow-md">
-                                G
+                                {userInitial}
                             </div>
                             <div className="overflow-hidden">
-                                <p className="text-sm font-semibold text-white truncate">Gokul</p>
-                                <p className="text-xs text-slate-400 truncate">Admin</p>
+                                <p className="text-sm font-semibold text-white truncate">{storedUser.name || 'Administrator'}</p>
+                                <p className="text-xs text-slate-400 truncate">{storedUser.role || 'Admin'}</p>
                             </div>
                         </div>
                     </div>
@@ -142,22 +166,15 @@ const AdminLayout = () => {
                 <header className="h-24 sticky top-0 z-20 flex items-center px-8 justify-between">
                     <div>
                         <h2 className="text-2xl font-bold capitalize text-white tracking-tight">
-                            {location.pathname === '/' ? 'Dashboard Overview' : location.pathname.split('/')[1].replace('-', ' ')}
+                            {pageTitle}
                         </h2>
-                        <p className="text-slate-400 text-sm mt-1">Manage and track your company assets efficiently.</p>
+                        <p className="text-slate-400 text-sm mt-1">Manage inventory, assignments, compliance alerts, and reporting from one workspace.</p>
                     </div>
 
                     <div className="flex items-center space-x-6">
-                        {/* Search Bar */}
-                        <div className="hidden md:flex relative group">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-cyan-400">
-                                <Search size={16} />
-                            </div>
-                            <input
-                                type="text"
-                                placeholder="Search anywhere..."
-                                className="pl-10 pr-4 py-2 bg-slate-800/40 border border-slate-700/50 rounded-full text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 w-64 backdrop-blur-md transition-all"
-                            />
+                        <div className="hidden md:flex items-center gap-3 rounded-full border border-slate-700/50 bg-slate-800/40 px-4 py-2 text-sm text-slate-300 backdrop-blur-md">
+                            <ShieldCheck size={16} className="text-emerald-400" />
+                            <span>Secure admin session</span>
                         </div>
 
                         {/* Notifications */}

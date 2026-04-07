@@ -83,6 +83,10 @@ const deleteAsset = async (req, res) => {
     try {
         const asset = await Asset.findById(req.params.id);
         if (asset) {
+            if (asset.status === 'Assigned') {
+                return res.status(400).json({ message: 'Assigned assets must be returned before deletion' });
+            }
+
             await AuditLog.create({
                 action: 'ASSET_DELETED', entity: 'Asset', entityId: asset._id,
                 entityName: asset.assetName, details: `Asset ${asset.assetId} was removed from inventory.`

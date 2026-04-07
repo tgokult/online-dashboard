@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Trash2, Users } from 'lucide-react';
+import { Plus, Trash2, Users, Pencil } from 'lucide-react';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 interface Employee {
     _id: string;
@@ -13,6 +14,7 @@ const EmployeeManagement = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
+    const [editingId, setEditingId] = useState<string | null>(null);
     const [formData, setFormData] = useState({ name: '', email: '', department: '' });
 
     const fetchEmployees = async () => {
@@ -33,12 +35,19 @@ const EmployeeManagement = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            await api.post('/employees', formData);
+            if (editingId) {
+                await api.put(`/employees/${editingId}`, formData);
+                toast.success('Employee updated successfully');
+            } else {
+                await api.post('/employees', formData);
+                toast.success('Employee added successfully');
+            }
             setShowModal(false);
+            setEditingId(null);
             setFormData({ name: '', email: '', department: '' });
             fetchEmployees();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error creating employee');
+            toast.error(error.response?.data?.message || 'Error saving employee');
         }
     };
 
@@ -48,11 +57,22 @@ const EmployeeManagement = () => {
         if (window.confirm('Delete this employee?')) {
             try {
                 await api.delete(`/employees/${id}`);
+                toast.success('Employee removed successfully');
                 fetchEmployees();
-            } catch (error) {
-                console.error(error);
+            } catch (error: any) {
+                toast.error(error.response?.data?.message || 'Failed to delete employee');
             }
         }
+    };
+
+    const handleEdit = (employee: Employee) => {
+        setEditingId(employee._id);
+        setFormData({
+            name: employee.name,
+            email: employee.email,
+            department: employee.department,
+        });
+        setShowModal(true);
     };
 
     return (
@@ -100,6 +120,13 @@ const EmployeeManagement = () => {
                             >
                                 <Trash2 size={18} />
                             </button>
+                            <button
+                                onClick={() => handleEdit(emp)}
+                                className="absolute top-4 right-16 text-indigo-300 opacity-0 group-hover:opacity-100 hover:bg-indigo-500/20 p-2.5 rounded-xl transition-all z-10 transform scale-95 group-hover:scale-100"
+                                title="Edit employee"
+                            >
+                                <Pencil size={18} />
+                            </button>
 
                             <div className="flex flex-col items-center text-center relative z-10 mt-2">
                                 <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-500 text-white flex items-center justify-center text-3xl font-bold mb-5 shadow-lg shadow-purple-500/20 ring-4 ring-slate-800">
@@ -129,8 +156,8 @@ const EmployeeManagement = () => {
                         <div className="absolute top-0 right-0 w-32 h-32 bg-purple-500/20 rounded-full blur-[60px] pointer-events-none"></div>
 
                         <div className="relative z-10">
-                            <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">New Employee</h3>
-                            <p className="text-slate-400 text-sm mb-6">Add a team member to the directory.</p>
+                            <h3 className="text-2xl font-bold text-white mb-2 tracking-tight">{editingId ? 'Edit Employee' : 'New Employee'}</h3>
+                            <p className="text-slate-400 text-sm mb-6">{editingId ? 'Update the employee directory record.' : 'Add a team member to the directory.'}</p>
 
                             <form onSubmit={handleSubmit} className="space-y-5">
                                 <div className="space-y-2">
@@ -147,8 +174,8 @@ const EmployeeManagement = () => {
                                 </div>
 
                                 <div className="flex justify-end space-x-3 pt-6 mt-6 border-t border-slate-700/50">
-                                    <button type="button" onClick={() => setShowModal(false)} className="px-5 py-2.5 text-slate-300 hover:bg-slate-700 rounded-xl transition-colors font-medium border border-transparent hover:border-slate-600">Cancel</button>
-                                    <button type="submit" className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-500 text-white rounded-xl hover:from-purple-500 hover:to-indigo-400 font-semibold shadow-lg shadow-purple-500/25 transition-all">Save Member</button>
+                                    <button type="button" onClick={() => { setShowModal(false); setEditingId(null); setFormData({ name: '', email: '', department: '' }); }} className="px-5 py-2.5 text-slate-300 hover:bg-slate-700 rounded-xl transition-colors font-medium border border-transparent hover:border-slate-600">Cancel</button>
+                                    <button type="submit" className="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-500 text-white rounded-xl hover:from-purple-500 hover:to-indigo-400 font-semibold shadow-lg shadow-purple-500/25 transition-all">{editingId ? 'Update Member' : 'Save Member'}</button>
                                 </div>
                             </form>
                         </div>

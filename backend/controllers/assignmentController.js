@@ -1,6 +1,8 @@
 const Assignment = require('../models/Assignment');
 const Asset = require('../models/Asset');
 const Employee = require('../models/Employee');
+const AuditLog = require('../models/AuditLog');
+const Notification = require('../models/Notification');
 
 const getAssignments = async (req, res) => {
     try {
@@ -36,6 +38,22 @@ const assignAsset = async (req, res) => {
         asset.assignedTo = employeeId;
         await asset.save();
 
+        await AuditLog.create({
+            action: 'ASSET_ASSIGNED',
+            entity: 'Assignment',
+            entityId: createdAssignment._id,
+            entityName: asset.assetName,
+            details: `${asset.assetName} (${asset.assetId}) was assigned to ${employee.name}.`,
+        });
+
+        await Notification.create({
+            title: 'Asset Assigned',
+            message: `${asset.assetName} was assigned to ${employee.name}.`,
+            type: 'info',
+            relatedEntity: 'Assignment',
+            relatedId: createdAssignment._id,
+        });
+
         res.status(201).json(createdAssignment);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -57,6 +75,24 @@ const returnAsset = async (req, res) => {
             asset.status = 'Available';
             asset.assignedTo = null;
             await asset.save();
+
+            const employee = await Employee.findById(assignment.employeeId);
+
+            await AuditLog.create({
+                action: 'ASSET_RETURNED',
+                entity: 'Assignment',
+                entityId: assignment._id,
+                entityName: asset.assetName,
+                details: `${asset.assetName} (${asset.assetId}) was returned${employee ? ` by ${employee.name}` : ''}.`,
+            });
+
+            await Notification.create({
+                title: 'Asset Returned',
+                message: `${asset.assetName} is now back in inventory.`,
+                type: 'success',
+                relatedEntity: 'Assignment',
+                relatedId: assignment._id,
+            });
         }
 
         res.json({ message: 'Asset returned successfully', assignment });

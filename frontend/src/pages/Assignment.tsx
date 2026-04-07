@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ArrowLeftRight, CheckSquare, Clock } from 'lucide-react';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const Assignment = () => {
     const [assignments, setAssignments] = useState<any[]>([]);
@@ -36,9 +37,10 @@ const Assignment = () => {
         try {
             await api.post('/assignments/assign', formData);
             setFormData({ assetId: '', employeeId: '' });
+            toast.success('Asset assigned successfully');
             fetchData();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error assigning asset');
+            toast.error(error.response?.data?.message || 'Error assigning asset');
         }
     };
 
@@ -46,9 +48,10 @@ const Assignment = () => {
         if (window.confirm('Mark this asset as returned?')) {
             try {
                 await api.post(`/assignments/return/${id}`);
+                toast.success('Asset marked as returned');
                 fetchData();
-            } catch (error) {
-                console.error(error);
+            } catch (error: any) {
+                toast.error(error.response?.data?.message || 'Failed to mark return');
             }
         }
     };
@@ -102,7 +105,8 @@ const Assignment = () => {
                     </div>
                     <button
                         type="submit"
-                        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white rounded-xl hover:from-indigo-500 hover:to-cyan-400 shadow-lg shadow-cyan-500/25 transition-all font-semibold mt-6 active:scale-[0.98]"
+                        disabled={!assets.length || !employees.length}
+                        className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white rounded-xl hover:from-indigo-500 hover:to-cyan-400 shadow-lg shadow-cyan-500/25 transition-all font-semibold mt-6 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         Create Assignment
                     </button>

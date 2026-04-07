@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Search, Edit2, Trash2, Filter, HardDrive } from 'lucide-react';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 interface Asset {
     _id: string;
@@ -9,6 +10,8 @@ interface Asset {
     assetName: string;
     category: string;
     status: string;
+    location?: string;
+    vendor?: string;
     assignedTo: { name: string } | null;
 }
 
@@ -16,6 +19,7 @@ const AssetsManagement = () => {
     const [assets, setAssets] = useState<Asset[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
+    const [statusFilter, setStatusFilter] = useState('All');
 
     const fetchAssets = async () => {
         try {
@@ -36,17 +40,27 @@ const AssetsManagement = () => {
         if (window.confirm('Are you sure you want to delete this asset?')) {
             try {
                 await api.delete(`/assets/${id}`);
+                toast.success('Asset removed successfully');
                 fetchAssets();
-            } catch (error) {
-                console.error(error);
+            } catch (error: any) {
+                toast.error(error.response?.data?.message || 'Failed to delete asset');
             }
         }
     };
 
     const filteredAssets = assets.filter(a =>
-        a.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        a.assetId.toLowerCase().includes(searchTerm.toLowerCase())
+        (a.assetName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            a.assetId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            a.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            a.location?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            a.vendor?.toLowerCase().includes(searchTerm.toLowerCase())) &&
+        (statusFilter === 'All' || a.status === statusFilter)
     );
+
+    const statusSummary = ['Available', 'Assigned', 'Maintenance'].map((status) => ({
+        status,
+        count: assets.filter((asset) => asset.status === status).length,
+    }));
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -66,10 +80,19 @@ const AssetsManagement = () => {
                 </div>
 
                 <div className="flex gap-3 w-full sm:w-auto z-10">
-                    <button className="flex items-center space-x-2 px-5 py-3 text-slate-300 bg-slate-800 border border-slate-700 rounded-xl hover:bg-slate-700 hover:text-white transition-all">
+                    <div className="relative">
                         <Filter size={18} />
-                        <span className="font-medium">Filter</span>
-                    </button>
+                        <select
+                            value={statusFilter}
+                            onChange={(e) => setStatusFilter(e.target.value)}
+                            className="min-w-36 rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 pl-10 text-slate-200 outline-none transition-all hover:bg-slate-700"
+                        >
+                            <option value="All">All status</option>
+                            <option value="Available">Available</option>
+                            <option value="Assigned">Assigned</option>
+                            <option value="Maintenance">Maintenance</option>
+                        </select>
+                    </div>
                     <Link
                         to="/assets/new"
                         className="flex-1 sm:flex-none flex items-center justify-center space-x-2 px-6 py-3 bg-gradient-to-r from-indigo-600 to-cyan-500 text-white rounded-xl hover:from-indigo-500 hover:to-cyan-400 shadow-lg shadow-cyan-500/25 transition-all font-semibold transform active:scale-95"
@@ -78,6 +101,15 @@ const AssetsManagement = () => {
                         <span>Add Asset</span>
                     </Link>
                 </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                {statusSummary.map((item) => (
+                    <div key={item.status} className="rounded-2xl border border-slate-700/50 bg-slate-800/40 p-5 backdrop-blur-xl">
+                        <p className="text-sm uppercase tracking-[0.2em] text-slate-400">{item.status}</p>
+                        <p className="mt-3 text-3xl font-bold text-white">{item.count}</p>
+                    </div>
+                ))}
             </div>
 
             {/* Data Table */}
@@ -98,6 +130,7 @@ const AssetsManagement = () => {
                                     <th className="px-6 py-4 font-semibold">Asset ID</th>
                                     <th className="px-6 py-4 font-semibold">Name</th>
                                     <th className="px-6 py-4 font-semibold">Category</th>
+                                    <th className="px-6 py-4 font-semibold">Location</th>
                                     <th className="px-6 py-4 font-semibold">Status</th>
                                     <th className="px-6 py-4 font-semibold">Assigned To</th>
                                     <th className="px-6 py-4 font-semibold text-right">Actions</th>
@@ -128,6 +161,7 @@ const AssetsManagement = () => {
                                                     {asset.category}
                                                 </span>
                                             </td>
+                                            <td className="px-6 py-4 text-slate-300">{asset.location || 'Unassigned location'}</td>
                                             <td className="px-6 py-4">
                                                 <span className={`px-3 py-1.5 text-xs rounded-lg font-medium border flex w-max items-center space-x-1.5
                                                     ${asset.status === 'Available' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :

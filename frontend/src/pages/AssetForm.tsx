@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Save, HardDrive } from 'lucide-react';
 import api from '../services/api';
+import toast from 'react-hot-toast';
 
 const AssetForm = () => {
     const { id } = useParams();
@@ -13,7 +14,13 @@ const AssetForm = () => {
         assetName: '',
         category: '',
         purchaseDate: '',
-        status: 'Available'
+        status: 'Available',
+        location: '',
+        vendor: '',
+        warrantyExpiry: '',
+        maintenanceDue: '',
+        purchasePrice: '',
+        notes: '',
     });
 
     useEffect(() => {
@@ -27,7 +34,13 @@ const AssetForm = () => {
                         assetName: asset.assetName,
                         category: asset.category,
                         purchaseDate: asset.purchaseDate ? asset.purchaseDate.substring(0, 10) : '',
-                        status: asset.status
+                        status: asset.status,
+                        location: asset.location || '',
+                        vendor: asset.vendor || '',
+                        warrantyExpiry: asset.warrantyExpiry ? asset.warrantyExpiry.substring(0, 10) : '',
+                        maintenanceDue: asset.maintenanceDue ? asset.maintenanceDue.substring(0, 10) : '',
+                        purchasePrice: asset.purchasePrice?.toString() || '',
+                        notes: asset.notes || '',
                     });
                 } catch (error) {
                     console.error(error);
@@ -45,14 +58,22 @@ const AssetForm = () => {
         e.preventDefault();
         setLoading(true);
         try {
+            const payload = {
+                ...formData,
+                purchasePrice: formData.purchasePrice ? Number(formData.purchasePrice) : null,
+                warrantyExpiry: formData.warrantyExpiry || null,
+                maintenanceDue: formData.maintenanceDue || null,
+            };
+
             if (isEdit) {
-                await api.put(`/assets/${id}`, formData);
+                await api.put(`/assets/${id}`, payload);
             } else {
-                await api.post('/assets', formData);
+                await api.post('/assets', payload);
             }
+            toast.success(isEdit ? 'Asset updated successfully' : 'Asset created successfully');
             navigate('/assets');
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error occurred');
+            toast.error(error.response?.data?.message || 'Error occurred');
         } finally {
             setLoading(false);
         }
@@ -154,6 +175,72 @@ const AssetForm = () => {
                                 </select>
                             </div>
                         )}
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-300">Location</label>
+                            <input
+                                type="text"
+                                name="location"
+                                value={formData.location}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all font-light"
+                                placeholder="Head office / Storage room"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-300">Vendor</label>
+                            <input
+                                type="text"
+                                name="vendor"
+                                value={formData.vendor}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all font-light"
+                                placeholder="Dell / Apple / Lenovo"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-300">Warranty Expiry</label>
+                            <input
+                                type="date"
+                                name="warrantyExpiry"
+                                value={formData.warrantyExpiry}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all font-light [color-scheme:dark]"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <label className="block text-sm font-medium text-slate-300">Maintenance Due</label>
+                            <input
+                                type="date"
+                                name="maintenanceDue"
+                                value={formData.maintenanceDue}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all font-light [color-scheme:dark]"
+                            />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                            <label className="block text-sm font-medium text-slate-300">Purchase Price</label>
+                            <input
+                                type="number"
+                                name="purchasePrice"
+                                value={formData.purchasePrice}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all font-light"
+                                placeholder="65000"
+                                min="0"
+                                step="0.01"
+                            />
+                        </div>
+                        <div className="space-y-2 md:col-span-2">
+                            <label className="block text-sm font-medium text-slate-300">Notes</label>
+                            <textarea
+                                name="notes"
+                                value={formData.notes}
+                                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                rows={4}
+                                className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500/50 transition-all font-light"
+                                placeholder="Condition, serial notes, procurement details..."
+                            />
+                        </div>
                     </div>
 
                     <div className="pt-6 mt-6 border-t border-slate-700/50 flex justify-end">
